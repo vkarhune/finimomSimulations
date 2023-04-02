@@ -16,7 +16,7 @@ Scripts for simulations in the manuscript "Genetic fine-mapping from summary dat
 
 4. Simulate a phenotype and create summary statistics using synthetic data:
 
-`04simulate_summary_statistics_synthetic`
+`04simulate_summary_statistics_synthetic.R`
 
 5. Run FiniMOM for synthetic dataset:
 
