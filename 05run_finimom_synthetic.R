@@ -9,7 +9,7 @@ burninprop <- as.numeric(args[4])
 tau <- as.numeric(args[5])
 maxsize <- as.integer(args[6])
 simnumstart <- as.integer(args[7])
-u <- as.numeric(args[8]) # set to zero for varying b0
+u <- as.numeric(args[8])
 stdize <- as.logical(args[9])
 applyclumping <- as.logical(args[10])
 ala <- as.logical(args[11])
@@ -17,14 +17,14 @@ ala <- as.logical(args[11])
 niter <- chainlength/(1 - burninprop)
 
 if(0){
- generegion <- "CSNK1A1L"
- insampleLD <- FALSE
+ generegion <- "500variants"
+ insampleLD <- TRUE
  chainlength <- 50000
  burninprop <- 0.2
- tau <- 0.00385
+ tau <- 0.000416
  maxsize <- 10
  simnumstart <- 501
- u <- 2.25
+ u <- 2
  stdize <- TRUE
  applyclumping <- TRUE
  ala <- TRUE
@@ -32,11 +32,14 @@ if(0){
  niter <- chainlength/(1 - burninprop)
 }
 
-if(u == 0){ u <- NULL }# NOTE: this changed later
+if(u == 0){ u <- NULL }
 if(is.null(u)){ out_u <- 0
  } else {
  out_u <- u
 }
+
+
+# .libPaths("/home/vkarhune/rpackages/")
 
 # R-4.2.1
 .libPaths(paste0("/projappl/minmanni/project_rpackages_", gsub("\\.", "", getRversion())))
@@ -45,7 +48,7 @@ library(finimom) # remotes::install_github("vkarhune/finimom")
 
 
  
-filename <- list.files("data", pattern = paste0("simdata", simnumstart, "_", generegion, ".*.Rds"), full.names = T)
+filename <- list.files("data", pattern = paste0("simdatasynthetic", simnumstart, "_", generegion, ".*.Rds"), full.names = T)
 
 filenamesplit <- strsplit(filename, "_")
 
@@ -55,8 +58,8 @@ clump <- filenamesplit[[1]][4]
 
 
 LDfile <- ifelse(insampleLD,
- paste0("data/LDmat_", paste0(c(generegion, samplesize, clump), collapse = "_"), ".Rds"),
- paste0("data/LDmat_NFBC1986_", generegion, ".Rds")
+ paste0("data/LDmatsynthetic_", paste0(c(sub("variants", "", generegion), samplesize, "0"), collapse = "_"), ".Rds"),
+ paste0("data/refLDmatsynthetic_", paste0(c(sub("variants", "", generegion), samplesize, "0"), collapse = "_"), ".Rds")
 )
 
 LD <- readRDS(LDfile)
@@ -64,34 +67,50 @@ LD <- readRDS(LDfile)
 LDmat <- LD[[1]]
 eafs <- LD[[2]]
 
-# there were some flipped alleles in the reference LD - fix these
+
+
+# fix flipped alleles in reference LD
 if(0){
- LD2 <- readRDS(paste0("data/LDmat_", paste0(c(generegion, samplesize, clump), collapse = "_"), ".Rds"))
+ LD2 <- readRDS(paste0("data/LDmatsynthetic_", paste0(c(sub("variants", "", generegion), samplesize, "0"), collapse = "_"), ".Rds"))
  plot(LDmat[lower.tri(LDmat)],LD2[[1]][lower.tri(LD2[[1]])])
  
  slopes <- sapply(seq_len(nrow(LDmat)), function(i){
-  m1 <- lm(LD2[[1]][i,] ~ LDmat[i,])
+  m1 <- lm(LD2[[1]][i,-i] ~ LDmat[i,-i]) # update: ith element deleted
   coef(m1)[2]
  })
  
  which(slopes < 0)
- # LDmat[i, ] LDmat[i, ]
- #      1628       1631
+
 }
 
-if(!(insampleLD) & generegion %in% "MDGA2"){
- LDmat[c(490, 492, 1792, 1832, 1834),] <- -LDmat[c(490, 492, 1792, 1832, 1834),]
- LDmat[,c(490, 492, 1792, 1832, 1834)] <- -LDmat[,c(490, 492, 1792, 1832, 1834)]
-  
+if(!(insampleLD) & generegion %in% "2000variants"){
+ LDmat[1493,] <- -LDmat[1493,]
+ LDmat[,1493] <- -LDmat[,1493]
+ 
  stopifnot(all(diag(LDmat) == 1))
 }
 
-if(!(insampleLD) & generegion %in% "GCNT2"){
- LDmat[c(757, 760, 767),] <- -LDmat[c(757, 760, 767),]
- LDmat[,c(757, 760, 767)] <- -LDmat[,c(757, 760, 767)]
-
+if(!(insampleLD) & generegion %in% "5000variants"){
+ LDmat[c(385, 542, 587, 631, 812, 1091, 2353, 2464, 4126, 4806),] <- -LDmat[c(385, 542, 587, 631, 812, 1091, 2353, 2464, 4126, 4806),]
+ LDmat[,c(385, 542, 587, 631, 812, 1091, 2353, 2464, 4126, 4806)] <- -LDmat[,c(385, 542, 587, 631, 812, 1091, 2353, 2464, 4126, 4806)]
+ 
  stopifnot(all(diag(LDmat) == 1))
 }
+
+if(!(insampleLD) & generegion %in% "10000variants"){
+ swapinds <- c(1504, 2364, 3483, 3559, 3564, 3568, 3569, 3575, 3577, 3592,
+  3594, 3599, 3602, 3605, 3606, 3607, 3608, 3609, 3614,
+  3616, 3622, 3624, 3627, 3628, 3629, 3638, 4452, 5083,
+  5085, 6292, 6732, 7021, 7025, 7027, 7031, 7042, 7056,
+  8403, 8995, 8998, 9101)
+
+ LDmat[swapinds,] <- -LDmat[swapinds,]
+ LDmat[,swapinds] <- -LDmat[,swapinds]
+ 
+ stopifnot(all(diag(LDmat) == 1))
+}
+
+
 
 N <- as.numeric(gsub("\\D", "", samplesize))
 
@@ -110,7 +129,7 @@ reslist <- lapply(files, function(file){
  
  if(is.null(u)){ u <- log(nrow(summarystats) - 1)/log(nrow(summarystats)) }
  if(u == -999){ u <- log(999)/log(nrow(summarystats)) }
-
+ 
 prc <- proc.time()
  out <- finimom(beta = summarystats[,1], se = summarystats[,2],
   eaf = eafs, R = LDmat,
@@ -129,9 +148,18 @@ prc <- proc.time()
 elapsed <- (proc.time() - prc)[[3]]
 
  truecausals <- dat[[2]]
+ # p <- ncol(out[[1]]) FIX
  p <- nrow(summarystats)
 
+
   
+ if(0){
+  library(susieR)
+  z <- summarystats[,1]/summarystats[,2]
+  prc <- proc.time()
+  fitted_rss <- susie_rss(z, LDmat, L = maxsize, n = N)
+  proc.time() - prc
+ }
   
  d <- data.frame(
   pip = out$pip,
@@ -148,7 +176,7 @@ elapsed <- (proc.time() - prc)[[3]]
 reffile <- ifelse(insampleLD, "insampleLD", "refLD")
 
 outfilename <- paste0(sub(".Rds", "",
-  paste0(c("results/finimom", reffile, filenamesplit[[1]][2:6], tau, out_u, stdize),
+  paste0(c("results/finimomsynthetic", reffile, filenamesplit[[1]][2:6], tau, out_u, stdize),
    collapse = "_")),
  ".Rds")
 

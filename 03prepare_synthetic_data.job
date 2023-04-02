@@ -1,0 +1,51 @@
+#!/bin/bash -l
+#SBATCH --job-name=prepare_synthetic_data
+#SBATCH --account=xxxxxxxx
+#SBATCH --output=prepare_synthetic_data.out
+#SBATCH --partition=small
+#SBATCH --time=12:00:00
+#SBATCH --ntasks=1
+#SBATCH --nodes=1
+#SBATCH --mem-per-cpu=48000
+
+# Plink
+module load plink
+
+wget https://www.ebi.ac.uk/biostudies/files/S-BSST936/genotypes/synthetic_v1_chr-22.bed
+wget https://www.ebi.ac.uk/biostudies/files/S-BSST936/genotypes/synthetic_v1_chr-22.bim
+wget https://www.ebi.ac.uk/biostudies/files/S-BSST936/genotypes/synthetic_v1_chr-22.fam
+
+# ids
+awk 'FNR <= 50000' synthetic_v1_chr-22.fam > data/ids.fam
+plink2 --bfile synthetic_v1_chr-22 --keep data/ids.fam --make-bed --out data/synthetic_idfiltered
+
+# reference data
+awk 'FNR >= 50001 && FNR <= 55000' synthetic_v1_chr-22.fam > data/ids_ref.fam
+plink2 --bfile synthetic_v1_chr-22 --keep data/ids_ref.fam --make-bed --out data/synthetic_ref_idfiltered
+
+# variants
+awk 'FNR >= 10001 && FNR <= 50000 {print $2}' synthetic_v1_chr-22.bim > data/variants.txt
+plink2 --bfile data/synthetic_idfiltered --extract data/variants.txt --make-bed --out data/synthetic_filtered0
+
+# reference data
+plink2 --bfile data/synthetic_ref_idfiltered --extract data/variants.txt --make-bed --out data/synthetic_ref_filtered0
+
+
+module load plink/1.90
+
+# maf
+plink --bfile data/synthetic_filtered0 --maf 0.01 --make-bed --out data/synthetic_filtered_maf001
+
+# maf, reference data
+plink --bfile data/synthetic_ref_filtered0 --maf 0.01 --make-bed --out data/synthetic_ref_filtered
+awk '{print $2}' data/synthetic_ref_filtered.bim > data/variants_maf001.txt
+
+module load plink
+plink2 --bfile data/synthetic_filtered_maf001 --extract data/variants_maf001.txt --make-bed --out data/synthetic_filtered
+
+rm synthetic_v1_chr-22.*
+rm data/synthetic_idfiltered.*
+rm data/synthetic_ref_idfiltered.*
+rm data/synthetic_filtered0.*
+rm data/synthetic_ref_filtered0.*
+rm data/synthetic_filtered_maf001.*
