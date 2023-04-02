@@ -10,7 +10,7 @@ Scripts for simulations in the manuscript "Genetic fine-mapping from summary dat
 
 `02run_finimom.R`
 
-3. Synthetic data
+3. Download and prepare synthetic data for simulations:
 
 `03prepare_synthetic_data.job`
 
